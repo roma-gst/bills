@@ -1,16 +1,114 @@
-# React + Vite
+# 💸 Bills Planner
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Um planejador financeiro moderno desenvolvido com React.
 
-Currently, two official plugins are available:
+O objetivo do projeto é ajudar usuários a organizar receitas, despesas e metas financeiras durante todo o ano, com uma interface limpa e intuitiva.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## ✨ Funcionalidades
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Dashboard moderno
+- Planejamento anual
+- Visualização por mês
+- Cadastro de receitas
+- Cadastro de despesas
+- Exclusão de lançamentos
+- Estado global com Context API
+- Interface responsiva
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 🚀 Tecnologias
+
+- React
+- Vite
+- React Router DOM
+- Tailwind CSS
+- Lucide React
+- Context API
+
+---
+
+## 📷 Preview
+
+> Em breve
+
+---
+
+## 📁 Estrutura
+
+```
+src
+│
+├── assets
+├── components
+│   ├── forms
+│   ├── home
+│   ├── month
+│   └── ui
+│
+├── context
+├── data
+├── hooks
+├── pages
+├── utils
+```
+
+---
+
+## 📌 Roadmap
+
+### ✅ Concluído
+
+- Home
+- Dashboard
+- Página do mês
+- CRUD de receitas
+- CRUD de despesas
+- Context API
+
+### 🚧 Em desenvolvimento
+
+- Editar lançamentos
+- Categorias
+- Parcelamentos
+- Metas
+- Dashboard com gráficos
+- Supabase
+- Login
+- Deploy
+
+---
+
+## ▶️ Rodando o projeto
+
+Clone o projeto
+
+```bash
+git clone https://github.com/roma-gst/bills.git
+```
+
+Entre na pasta
+
+```bash
+cd bills/frontend
+```
+
+Instale as dependências
+
+```bash
+npm install
+```
+
+Execute
+
+```bash
+npm run dev
+```
+
+---
+
+## 👨‍💻 Autor
+
+Desenvolvido por Roma.
