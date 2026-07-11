@@ -16,11 +16,11 @@ function MonthListItem({ month }) {
 
   return (
     <Link to={`/month/${month.nome}`} className="block">
-      <div className="mb-3 flex items-center justify-between rounded-xl bg-white p-5 shadow transition hover:shadow-lg hover:-translate-y-0.5">
+      <div className="mb-3 flex items-center justify-between rounded-xl bg-white dark:bg-slate-900 p-5 shadow transition hover:shadow-lg hover:-translate-y-0.5">
         <div>
           <h2 className="text-lg font-semibold">{month.nome}</h2>
 
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-zinc-500 dark:text-slate-400">
             {month.receitas.length} receitas • {month.despesasFixas.length}{" "}
             despesas
           </p>

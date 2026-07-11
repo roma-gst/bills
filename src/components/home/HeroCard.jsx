@@ -31,7 +31,7 @@ function HeroCard({ totalRevenue, totalFixedExpenses, balance }) {
               <span>71%</span>
             </div>
 
-            <div className="h-2 overflow-hidden rounded-full bg-white/10">
+            <div className="h-2 overflow-hidden rounded-full bg-white dark:bg-slate-900/10">
               <div className="h-full w-[71%] rounded-full bg-emerald-400" />
             </div>
           </div>

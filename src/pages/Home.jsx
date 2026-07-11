@@ -1,7 +1,7 @@
 import { useState } from "react";
-// import MonthCard from "../components/home/MonthCard";
-// import MonthListItem from "../components/home/MonthListItem";
+
 import { useFinancial } from "../context/FinancialContext";
+
 import Modal from "../components/ui/Modal";
 import RevenueForm from "../components/forms/RevenueForm";
 import ExpenseForm from "../components/forms/ExpenseForm";
@@ -16,38 +16,33 @@ function Home() {
 
   const { monthsData, addRevenue, addFixedExpense } = useFinancial();
 
-  function handleSaveRevenue(revenue) {
-    addRevenue(revenue);
+  async function handleSaveRevenue(revenue) {
+    await addRevenue(revenue);
     setShowRevenueForm(false);
   }
 
-  function handleSaveFixedExpense(expense) {
-    addFixedExpense(expense);
+  async function handleSaveFixedExpense(expense) {
+    await addFixedExpense(expense);
     setShowFixedExpenseForm(false);
   }
 
   const totalRevenue = monthsData.reduce((total, month) => {
-    const monthRevenue = month.receitas.reduce(
-      (sum, receita) => sum + receita.valor,
-      0,
+    return (
+      total + month.receitas.reduce((sum, receita) => sum + receita.valor, 0)
     );
-
-    return total + monthRevenue;
   }, 0);
 
   const totalFixedExpenses = monthsData.reduce((total, month) => {
-    const monthExpenses = month.despesasFixas.reduce(
-      (sum, despesa) => sum + despesa.valor,
-      0,
+    return (
+      total +
+      month.despesasFixas.reduce((sum, despesa) => sum + despesa.valor, 0)
     );
-
-    return total + monthExpenses;
   }, 0);
 
   const balance = totalRevenue - totalFixedExpenses;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-100 via-stone-50 to-zinc-200 px-6 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-100 via-stone-50 to-zinc-200 px-6 py-6 transition-colors dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       <main className="mx-auto max-w-6xl">
         <HomeHeader
           onAddRevenue={() => setShowRevenueForm(true)}
@@ -61,6 +56,8 @@ function Home() {
           totalFixedExpenses={totalFixedExpenses}
           balance={balance}
         />
+
+        <PlanningSection monthsData={monthsData} />
 
         {showRevenueForm && (
           <Modal title="Nova Receita" onClose={() => setShowRevenueForm(false)}>
@@ -84,8 +81,6 @@ function Home() {
             />
           </Modal>
         )}
-
-        <PlanningSection monthsData={monthsData} />
       </main>
     </div>
   );

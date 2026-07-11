@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { Link, useParams } from "react-router-dom";
 
 import { useFinancial } from "../context/FinancialContext";
+
 import MonthSummaryCard from "../components/month/MonthSummaryCard";
 import RevenueSection from "../components/month/RevenueSection";
 import ExpenseSection from "../components/month/ExpenseSection";
+
 import Button from "../components/ui/Button";
 import Modal from "../components/ui/Modal";
+
 import RevenueForm from "../components/forms/RevenueForm";
 import ExpenseForm from "../components/forms/ExpenseForm";
 
@@ -40,15 +43,15 @@ function MonthDetails() {
 
   if (!month) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-100 px-6">
+      <div className="flex min-h-screen items-center justify-center bg-zinc-100 px-6 transition-colors dark:bg-slate-950">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-zinc-900">
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
             Mês não encontrado
           </h1>
 
           <Link
             to="/"
-            className="mt-5 inline-flex text-blue-600 hover:underline"
+            className="mt-5 inline-flex text-indigo-600 hover:underline dark:text-indigo-400"
           >
             Voltar para a página inicial
           </Link>
@@ -93,44 +96,50 @@ function MonthDetails() {
     });
   }
 
-  function handleSaveRevenue(revenue) {
+  async function handleSaveRevenue(revenue) {
     if (revenueModal.editingIndex !== null) {
-      updateRevenue(month.nome, revenueModal.editingIndex, revenue);
+      await updateRevenue(month.nome, revenueModal.editingIndex, revenue);
     } else {
-      addRevenue(revenue);
+      await addRevenue(revenue);
     }
 
     closeRevenueModal();
   }
 
-  function handleSaveExpense(expense) {
+  async function handleSaveExpense(expense) {
     if (expenseModal.editingIndex !== null) {
-      updateFixedExpense(month.nome, expenseModal.editingIndex, expense);
+      await updateFixedExpense(month.nome, expenseModal.editingIndex, expense);
     } else {
-      addFixedExpense(expense);
+      await addFixedExpense(expense);
     }
 
     closeExpenseModal();
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-100 via-stone-50 to-zinc-200 px-6 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-100 via-stone-50 to-zinc-200 px-6 py-8 transition-colors dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       <main className="mx-auto max-w-6xl">
         <Link
           to="/"
-          className="mb-8 inline-flex items-center gap-2 text-zinc-600 transition hover:text-zinc-900"
+          className="mb-8 inline-flex items-center gap-2 text-zinc-600 transition hover:text-zinc-900 hover:underline dark:text-slate-400 dark:hover:text-white"
         >
           <ArrowLeft size={18} />
           Voltar
         </Link>
 
-        <h1 className="text-5xl font-bold text-zinc-900">{month.nome}</h1>
+        <h1 className="text-5xl font-bold text-zinc-900 transition-colors dark:text-white">
+          {month.nome}
+        </h1>
 
-        <p className="mt-3 text-lg text-zinc-500">
+        <p className="mt-3 text-lg text-zinc-500 transition-colors dark:text-slate-400">
           Acompanhe as receitas e despesas previstas para este mês.
         </p>
 
-        <MonthSummaryCard balance={balance} />
+        <MonthSummaryCard
+          balance={balance}
+          totalRevenue={totalRevenue}
+          totalExpenses={totalExpenses}
+        />
 
         <div className="mt-6 flex flex-wrap gap-4">
           <Button
