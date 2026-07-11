@@ -1,7 +1,7 @@
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import formatCurrency from "../../utils/formatCurrency";
 
-function ExpenseSection({ expenses, onRemove }) {
+function ExpenseSection({ expenses, onEdit, onRemove }) {
   return (
     <section className="rounded-3xl bg-white p-6 shadow-sm">
       <h3 className="text-2xl font-bold text-zinc-900">Despesas</h3>
@@ -10,29 +10,46 @@ function ExpenseSection({ expenses, onRemove }) {
         {expenses.length ? (
           expenses.map((expense, index) => (
             <div
-              key={index}
-              className="flex items-center justify-between rounded-xl bg-zinc-50 p-3"
+              key={`${expense.descricao}-${index}`}
+              className="flex items-center justify-between gap-4 rounded-2xl bg-zinc-50 p-4"
             >
-              <div>
-                <p className="font-medium">{expense.descricao}</p>
+              <div className="min-w-0">
+                <p className="truncate font-medium text-zinc-900">
+                  {expense.descricao}
+                </p>
 
-                <p className="text-sm font-semibold text-red-500">
+                <p className="mt-1 text-sm font-semibold text-red-500">
                   {formatCurrency(expense.valor)}
                 </p>
               </div>
 
-              <button
-                onClick={() => {
-                  if (
-                    window.confirm("Deseja realmente excluir esta despesa?")
-                  ) {
-                    onRemove(index);
-                  }
-                }}
-                className="rounded-lg p-2 text-zinc-400 transition hover:bg-red-50 hover:text-red-500"
-              >
-                <Trash2 size={18} />
-              </button>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => onEdit(index)}
+                  aria-label={`Editar ${expense.descricao}`}
+                  className="rounded-xl p-2 text-zinc-400 transition hover:bg-blue-50 hover:text-blue-600"
+                >
+                  <Pencil size={18} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const confirmed = window.confirm(
+                      "Deseja realmente excluir esta despesa?",
+                    );
+
+                    if (confirmed) {
+                      onRemove(index);
+                    }
+                  }}
+                  aria-label={`Excluir ${expense.descricao}`}
+                  className="rounded-xl p-2 text-zinc-400 transition hover:bg-red-50 hover:text-red-500"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
             </div>
           ))
         ) : (
@@ -42,7 +59,7 @@ function ExpenseSection({ expenses, onRemove }) {
             </p>
 
             <p className="mt-2 text-sm text-zinc-400">
-              Clique em <strong>+ Despesa</strong> para adicionar a primeira.
+              Clique em <strong>+ Despesa</strong> para adicionar.
             </p>
           </div>
         )}

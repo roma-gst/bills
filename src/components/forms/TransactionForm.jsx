@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { CalendarDays, FileText, Save, DollarSign } from "lucide-react";
-import Button from "../ui/Button";
 
 function TransactionForm({
   buttonText,
@@ -9,59 +8,69 @@ function TransactionForm({
   onCancel,
   showMonthSelect = true,
   defaultMonth = "Janeiro",
+  initialValues = null,
 }) {
-  const [description, setDescription] = useState("");
-  const [value, setValue] = useState("");
-  const [month, setMonth] = useState(defaultMonth);
+  const [description, setDescription] = useState(
+    initialValues?.descricao ?? "",
+  );
 
-  function handleSubmit() {
-    if (!description.trim() || !value) return;
+  const [value, setValue] = useState(initialValues?.valor?.toString() ?? "");
+
+  const [month, setMonth] = useState(initialValues?.month ?? defaultMonth);
+
+  function handleSubmit(event) {
+    event.preventDefault();
+
+    const numericValue = Number(value);
+
+    if (!description.trim() || !numericValue || numericValue <= 0) {
+      return;
+    }
 
     onSave({
-      description,
-      value,
+      description: description.trim(),
+      value: numericValue,
       month,
     });
-
-    setDescription("");
-    setValue("");
-    setMonth(defaultMonth);
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-4 rounded-2xl border border-zinc-200 px-5 py-4 focus-within:border-blue-500">
-        <FileText className="text-blue-600" size={24} />
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="flex items-center gap-4 rounded-2xl border border-zinc-200 px-5 py-4 transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10">
+        <FileText className="shrink-0 text-blue-600" size={23} />
 
         <input
           type="text"
           placeholder="Descrição"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="w-full bg-transparent text-lg outline-none placeholder:text-zinc-400"
+          onChange={(event) => setDescription(event.target.value)}
+          className="w-full bg-transparent text-lg text-slate-900 outline-none placeholder:text-zinc-400"
+          autoFocus
         />
       </div>
 
-      <div className="flex items-center gap-4 rounded-2xl border border-zinc-200 px-5 py-4 focus-within:border-blue-500">
-        <DollarSign className="text-blue-600" size={24} />
+      <div className="flex items-center gap-4 rounded-2xl border border-zinc-200 px-5 py-4 transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10">
+        <DollarSign className="shrink-0 text-blue-600" size={23} />
 
         <input
           type="number"
+          min="0.01"
+          step="0.01"
           placeholder="Valor"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
-          className="w-full bg-transparent text-lg outline-none placeholder:text-zinc-400"
+          onChange={(event) => setValue(event.target.value)}
+          className="w-full bg-transparent text-lg text-slate-900 outline-none placeholder:text-zinc-400"
         />
       </div>
 
       {showMonthSelect && (
-        <div className="flex items-center gap-4 rounded-2xl border border-zinc-200 px-5 py-4 focus-within:border-blue-500">
-          <CalendarDays className="text-blue-600" size={24} />
+        <div className="flex items-center gap-4 rounded-2xl border border-zinc-200 px-5 py-4 transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10">
+          <CalendarDays className="shrink-0 text-blue-600" size={23} />
 
           <select
             value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="w-full bg-transparent text-lg font-medium outline-none"
+            onChange={(event) => setMonth(event.target.value)}
+            className="w-full cursor-pointer bg-transparent text-lg font-medium text-slate-900 outline-none"
           >
             {months.map((item) => (
               <option key={item.nome} value={item.nome}>
@@ -72,24 +81,24 @@ function TransactionForm({
         </div>
       )}
 
-      <div className="flex items-center justify-between pt-6">
-        {onCancel && (
-          <button
-            onClick={onCancel}
-            className="rounded-2xl border border-zinc-200 px-8 py-4 text-lg font-semibold text-slate-600 transition hover:bg-zinc-100"
-          >
-            Cancelar
-          </button>
-        )}
+      <div className="flex flex-col-reverse gap-3 pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-2xl border border-zinc-200 px-7 py-3.5 font-semibold text-slate-600 transition hover:bg-zinc-100"
+        >
+          Cancelar
+        </button>
 
-        <Button onClick={handleSubmit}>
-          <span className="flex items-center gap-3">
-            <Save size={22} />
-            {buttonText}
-          </span>
-        </Button>
+        <button
+          type="submit"
+          className="flex items-center justify-center gap-3 rounded-2xl bg-blue-600 px-7 py-3.5 font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700"
+        >
+          <Save size={20} />
+          {buttonText}
+        </button>
       </div>
-    </div>
+    </form>
   );
 }
 

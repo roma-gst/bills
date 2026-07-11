@@ -6,15 +6,17 @@ function RevenueForm({
   onCancel,
   showMonthSelect = true,
   defaultMonth = "Janeiro",
+  initialValues = null,
 }) {
   return (
     <TransactionForm
-      buttonText="Salvar Receita"
+      buttonText={initialValues ? "Salvar alterações" : "Salvar Receita"}
       months={months}
       onSave={onSave}
       onCancel={onCancel}
       showMonthSelect={showMonthSelect}
       defaultMonth={defaultMonth}
+      initialValues={initialValues}
     />
   );
 }

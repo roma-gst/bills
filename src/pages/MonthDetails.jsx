@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 import { useFinancial } from "../context/FinancialContext";
@@ -12,8 +12,15 @@ import RevenueForm from "../components/forms/RevenueForm";
 import ExpenseForm from "../components/forms/ExpenseForm";
 
 function MonthDetails() {
-  const [showRevenueForm, setShowRevenueForm] = useState(false);
-  const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [revenueModal, setRevenueModal] = useState({
+    open: false,
+    editingIndex: null,
+  });
+
+  const [expenseModal, setExpenseModal] = useState({
+    open: false,
+    editingIndex: null,
+  });
 
   const { monthName } = useParams();
 
@@ -21,6 +28,8 @@ function MonthDetails() {
     monthsData,
     addRevenue,
     addFixedExpense,
+    updateRevenue,
+    updateFixedExpense,
     removeRevenue,
     removeFixedExpense,
   } = useFinancial();
@@ -29,24 +38,79 @@ function MonthDetails() {
     (item) => item.nome.toLowerCase() === monthName,
   );
 
-  const totalRevenue = month
-    ? month.receitas.reduce((total, item) => total + item.valor, 0)
-    : 0;
+  if (!month) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-100 px-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-zinc-900">
+            Mês não encontrado
+          </h1>
 
-  const totalExpenses = month
-    ? month.despesasFixas.reduce((total, item) => total + item.valor, 0)
-    : 0;
+          <Link
+            to="/"
+            className="mt-5 inline-flex text-blue-600 hover:underline"
+          >
+            Voltar para a página inicial
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const totalRevenue = month.receitas.reduce(
+    (total, item) => total + item.valor,
+    0,
+  );
+
+  const totalExpenses = month.despesasFixas.reduce(
+    (total, item) => total + item.valor,
+    0,
+  );
 
   const balance = totalRevenue - totalExpenses;
 
+  const editingRevenue =
+    revenueModal.editingIndex !== null
+      ? month.receitas[revenueModal.editingIndex]
+      : null;
+
+  const editingExpense =
+    expenseModal.editingIndex !== null
+      ? month.despesasFixas[expenseModal.editingIndex]
+      : null;
+
+  function closeRevenueModal() {
+    setRevenueModal({
+      open: false,
+      editingIndex: null,
+    });
+  }
+
+  function closeExpenseModal() {
+    setExpenseModal({
+      open: false,
+      editingIndex: null,
+    });
+  }
+
   function handleSaveRevenue(revenue) {
-    addRevenue(revenue);
-    setShowRevenueForm(false);
+    if (revenueModal.editingIndex !== null) {
+      updateRevenue(month.nome, revenueModal.editingIndex, revenue);
+    } else {
+      addRevenue(revenue);
+    }
+
+    closeRevenueModal();
   }
 
   function handleSaveExpense(expense) {
-    addFixedExpense(expense);
-    setShowExpenseForm(false);
+    if (expenseModal.editingIndex !== null) {
+      updateFixedExpense(month.nome, expenseModal.editingIndex, expense);
+    } else {
+      addFixedExpense(expense);
+    }
+
+    closeExpenseModal();
   }
 
   return (
@@ -60,52 +124,104 @@ function MonthDetails() {
           Voltar
         </Link>
 
-        <h1 className="text-5xl font-bold text-zinc-900">{month?.nome}</h1>
+        <h1 className="text-5xl font-bold text-zinc-900">{month.nome}</h1>
 
         <p className="mt-3 text-lg text-zinc-500">
-          Aqui ficarão as receitas, despesas, metas e observações deste mês.
+          Acompanhe as receitas e despesas previstas para este mês.
         </p>
 
         <MonthSummaryCard balance={balance} />
 
         <div className="mt-6 flex flex-wrap gap-4">
-          <Button onClick={() => setShowRevenueForm(true)}>+ Receita</Button>
+          <Button
+            onClick={() =>
+              setRevenueModal({
+                open: true,
+                editingIndex: null,
+              })
+            }
+          >
+            + Receita
+          </Button>
 
-          <Button onClick={() => setShowExpenseForm(true)}>+ Despesa</Button>
+          <Button
+            onClick={() =>
+              setExpenseModal({
+                open: true,
+                editingIndex: null,
+              })
+            }
+          >
+            + Despesa
+          </Button>
         </div>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-2">
           <RevenueSection
-            revenues={month?.receitas ?? []}
+            revenues={month.receitas}
+            onEdit={(index) =>
+              setRevenueModal({
+                open: true,
+                editingIndex: index,
+              })
+            }
             onRemove={(index) => removeRevenue(month.nome, index)}
           />
 
           <ExpenseSection
-            expenses={month?.despesasFixas ?? []}
+            expenses={month.despesasFixas}
+            onEdit={(index) =>
+              setExpenseModal({
+                open: true,
+                editingIndex: index,
+              })
+            }
             onRemove={(index) => removeFixedExpense(month.nome, index)}
           />
         </div>
 
-        {showRevenueForm && (
-          <Modal title="Nova Receita" onClose={() => setShowRevenueForm(false)}>
+        {revenueModal.open && (
+          <Modal
+            title={editingRevenue ? "Editar Receita" : "Nova Receita"}
+            onClose={closeRevenueModal}
+          >
             <RevenueForm
               months={monthsData}
               onSave={handleSaveRevenue}
-              onCancel={() => setShowRevenueForm(false)}
-              defaultMonth={month?.nome}
+              onCancel={closeRevenueModal}
+              defaultMonth={month.nome}
               showMonthSelect={false}
+              initialValues={
+                editingRevenue
+                  ? {
+                      ...editingRevenue,
+                      month: month.nome,
+                    }
+                  : null
+              }
             />
           </Modal>
         )}
 
-        {showExpenseForm && (
-          <Modal title="Nova Despesa" onClose={() => setShowExpenseForm(false)}>
+        {expenseModal.open && (
+          <Modal
+            title={editingExpense ? "Editar Despesa" : "Nova Despesa"}
+            onClose={closeExpenseModal}
+          >
             <ExpenseForm
               months={monthsData}
               onSave={handleSaveExpense}
-              onCancel={() => setShowExpenseForm(false)}
-              defaultMonth={month?.nome}
+              onCancel={closeExpenseModal}
+              defaultMonth={month.nome}
               showMonthSelect={false}
+              initialValues={
+                editingExpense
+                  ? {
+                      ...editingExpense,
+                      month: month.nome,
+                    }
+                  : null
+              }
             />
           </Modal>
         )}
