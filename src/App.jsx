@@ -13,6 +13,8 @@ import MonthDetails from "./pages/MonthDetails";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import Accounts from "./pages/Accounts";
+import Categories from "./pages/Categories";
+import RecurringTransactions from "./pages/RecurringTransactions";
 
 function App() {
   return (
@@ -28,9 +30,14 @@ function App() {
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Home />} />
                 <Route path="/accounts" element={<Accounts />} />
-
+                <Route path="/categories" element={<Categories />} />
+                <Route path="/categorias" element={<Categories />} />
+                <Route path="/recurring" element={<RecurringTransactions />} />
+                <Route
+                  path="/recorrencias"
+                  element={<RecurringTransactions />}
+                />
                 <Route path="/month/:monthName" element={<MonthDetails />} />
-
                 <Route path="/profile" element={<Profile />} />
               </Route>
 

@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import useAuth from "../hooks/useAuth";
 
@@ -8,6 +15,8 @@ import {
   getTransactions,
   removeTransaction,
 } from "../services/transactions";
+
+import { generateRecurringTransactions } from "../services/recurringTransactions";
 
 const FinancialContext = createContext(null);
 
@@ -32,6 +41,7 @@ function normalizeTransaction(transaction) {
   return {
     ...transaction,
     amount: Number(transaction.amount),
+    paid: Boolean(transaction.paid),
   };
 }
 
@@ -50,6 +60,11 @@ function createMonthsData(transactions) {
         descricao: transaction.description,
         valor: Number(transaction.amount),
         account_id: transaction.account_id,
+        category_id: transaction.category_id,
+        recurring: transaction.recurring,
+        recurring_rule_id: transaction.recurring_rule_id,
+        due_date: transaction.due_date,
+        paid: Boolean(transaction.paid),
       }));
 
     const despesasFixas = monthTransactions
@@ -59,6 +74,11 @@ function createMonthsData(transactions) {
         descricao: transaction.description,
         valor: Number(transaction.amount),
         account_id: transaction.account_id,
+        category_id: transaction.category_id,
+        recurring: transaction.recurring,
+        recurring_rule_id: transaction.recurring_rule_id,
+        due_date: transaction.due_date,
+        paid: Boolean(transaction.paid),
       }));
 
     return {
@@ -86,43 +106,34 @@ export function FinancialProvider({ children }) {
     [transactions],
   );
 
-  useEffect(() => {
-    let active = true;
+  const loadTransactions = useCallback(async () => {
+    if (!user) {
+      setTransactions([]);
+      setLoading(false);
+      return;
+    }
 
-    async function loadTransactions() {
-      if (!user) {
-        setTransactions([]);
-        setLoading(false);
-        return;
-      }
-
+    try {
       setLoading(true);
       setErrorMessage("");
 
-      try {
-        const data = await getTransactions(user.id, CURRENT_YEAR);
+      await generateRecurringTransactions(CURRENT_YEAR);
 
-        if (active) {
-          setTransactions(data.map(normalizeTransaction));
-        }
-      } catch (error) {
-        if (active) {
-          console.error(error);
-          setErrorMessage("Não foi possível carregar os lançamentos.");
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
+      const data = await getTransactions(user.id, CURRENT_YEAR);
+
+      setTransactions(data.map(normalizeTransaction));
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("Não foi possível carregar os lançamentos.");
+      throw error;
+    } finally {
+      setLoading(false);
     }
-
-    loadTransactions();
-
-    return () => {
-      active = false;
-    };
   }, [user]);
+
+  useEffect(() => {
+    loadTransactions().catch(() => {});
+  }, [loadTransactions]);
 
   function getRevenueByIndex(monthName, index) {
     const month = monthsData.find((item) => item.nome === monthName);
@@ -136,8 +147,16 @@ export function FinancialProvider({ children }) {
     return month?.despesasFixas[index] ?? null;
   }
 
-  async function addRevenue({ description, value, month, accountId }) {
-    if (!user) return;
+  async function addRevenue({
+    description,
+    value,
+    month,
+    accountId,
+    categoryId,
+  }) {
+    if (!user) {
+      throw new Error("Usuário não autenticado.");
+    }
 
     try {
       setErrorMessage("");
@@ -145,6 +164,7 @@ export function FinancialProvider({ children }) {
       const created = await createTransaction({
         user_id: user.id,
         account_id: accountId,
+        category_id: categoryId || null,
         type: "income",
         description: description.trim(),
         amount: Number(value),
@@ -160,13 +180,20 @@ export function FinancialProvider({ children }) {
     } catch (error) {
       console.error(error);
       setErrorMessage("Não foi possível adicionar a receita.");
-
       throw error;
     }
   }
 
-  async function addFixedExpense({ description, value, month, accountId }) {
-    if (!user) return;
+  async function addFixedExpense({
+    description,
+    value,
+    month,
+    accountId,
+    categoryId,
+  }) {
+    if (!user) {
+      throw new Error("Usuário não autenticado.");
+    }
 
     try {
       setErrorMessage("");
@@ -174,6 +201,7 @@ export function FinancialProvider({ children }) {
       const created = await createTransaction({
         user_id: user.id,
         account_id: accountId,
+        category_id: categoryId || null,
         type: "expense",
         description: description.trim(),
         amount: Number(value),
@@ -189,7 +217,6 @@ export function FinancialProvider({ children }) {
     } catch (error) {
       console.error(error);
       setErrorMessage("Não foi possível adicionar a despesa.");
-
       throw error;
     }
   }
@@ -197,7 +224,9 @@ export function FinancialProvider({ children }) {
   async function updateRevenue(monthName, revenueIndex, updatedRevenue) {
     const revenue = getRevenueByIndex(monthName, revenueIndex);
 
-    if (!revenue) return;
+    if (!revenue) {
+      return;
+    }
 
     try {
       setErrorMessage("");
@@ -206,6 +235,7 @@ export function FinancialProvider({ children }) {
         description: updatedRevenue.description.trim(),
         amount: Number(updatedRevenue.value),
         account_id: updatedRevenue.accountId,
+        category_id: updatedRevenue.categoryId || null,
       });
 
       setTransactions((current) =>
@@ -220,7 +250,6 @@ export function FinancialProvider({ children }) {
     } catch (error) {
       console.error(error);
       setErrorMessage("Não foi possível editar a receita.");
-
       throw error;
     }
   }
@@ -228,7 +257,9 @@ export function FinancialProvider({ children }) {
   async function updateFixedExpense(monthName, expenseIndex, updatedExpense) {
     const expense = getExpenseByIndex(monthName, expenseIndex);
 
-    if (!expense) return;
+    if (!expense) {
+      return;
+    }
 
     try {
       setErrorMessage("");
@@ -237,6 +268,7 @@ export function FinancialProvider({ children }) {
         description: updatedExpense.description.trim(),
         amount: Number(updatedExpense.value),
         account_id: updatedExpense.accountId,
+        category_id: updatedExpense.categoryId || null,
       });
 
       setTransactions((current) =>
@@ -251,7 +283,30 @@ export function FinancialProvider({ children }) {
     } catch (error) {
       console.error(error);
       setErrorMessage("Não foi possível editar a despesa.");
+      throw error;
+    }
+  }
 
+  async function toggleTransactionPaid(transactionId, paid) {
+    try {
+      setErrorMessage("");
+
+      const updated = await editTransaction(transactionId, {
+        paid: Boolean(paid),
+      });
+
+      setTransactions((current) =>
+        current.map((transaction) =>
+          transaction.id === transactionId
+            ? normalizeTransaction(updated)
+            : transaction,
+        ),
+      );
+
+      return updated;
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("Não foi possível atualizar o status do lançamento.");
       throw error;
     }
   }
@@ -259,7 +314,9 @@ export function FinancialProvider({ children }) {
   async function removeRevenue(monthName, revenueIndex) {
     const revenue = getRevenueByIndex(monthName, revenueIndex);
 
-    if (!revenue) return;
+    if (!revenue) {
+      return;
+    }
 
     try {
       setErrorMessage("");
@@ -272,7 +329,6 @@ export function FinancialProvider({ children }) {
     } catch (error) {
       console.error(error);
       setErrorMessage("Não foi possível excluir a receita.");
-
       throw error;
     }
   }
@@ -280,7 +336,9 @@ export function FinancialProvider({ children }) {
   async function removeFixedExpense(monthName, expenseIndex) {
     const expense = getExpenseByIndex(monthName, expenseIndex);
 
-    if (!expense) return;
+    if (!expense) {
+      return;
+    }
 
     try {
       setErrorMessage("");
@@ -293,7 +351,6 @@ export function FinancialProvider({ children }) {
     } catch (error) {
       console.error(error);
       setErrorMessage("Não foi possível excluir a despesa.");
-
       throw error;
     }
   }
@@ -303,10 +360,12 @@ export function FinancialProvider({ children }) {
     transactions,
     loading,
     errorMessage,
+    reloadTransactions: loadTransactions,
     addRevenue,
     addFixedExpense,
     updateRevenue,
     updateFixedExpense,
+    toggleTransactionPaid,
     removeRevenue,
     removeFixedExpense,
   };

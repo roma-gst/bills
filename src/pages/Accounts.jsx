@@ -1,25 +1,103 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 
 import useAccounts from "../hooks/useAccounts";
+import { useFinancial } from "../context/FinancialContext";
+
 import Modal from "../components/ui/Modal";
 import AccountForm from "../components/accounts/AccountForm";
+
+function formatCurrency(value) {
+  return Number(value || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
 
 function Accounts() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
 
-  const { accounts, loading, addAccount, editAccount, removeAccount } =
-    useAccounts();
+  const {
+    accounts,
+    loading: accountsLoading,
+    errorMessage: accountsError,
+    addAccount,
+    editAccount,
+    removeAccount,
+  } = useAccounts();
 
-  async function handleSaveAccount(account) {
-    if (editing) {
-      await editAccount(editing.id, account);
-    } else {
-      await addAccount(account);
+  const {
+    transactions,
+    loading: transactionsLoading,
+    errorMessage: transactionsError,
+  } = useFinancial();
+
+  const accountsSummary = useMemo(() => {
+    const summary = {};
+
+    for (const account of accounts) {
+      summary[account.id] = {
+        income: 0,
+        expense: 0,
+        pendingIncome: 0,
+        pendingExpense: 0,
+      };
     }
 
-    closeModal();
+    for (const transaction of transactions) {
+      if (!transaction.account_id) {
+        continue;
+      }
+
+      if (!summary[transaction.account_id]) {
+        summary[transaction.account_id] = {
+          income: 0,
+          expense: 0,
+          pendingIncome: 0,
+          pendingExpense: 0,
+        };
+      }
+
+      const amount = Number(transaction.amount) || 0;
+      const accountSummary = summary[transaction.account_id];
+
+      if (transaction.paid) {
+        if (transaction.type === "income") {
+          accountSummary.income += amount;
+        }
+
+        if (transaction.type === "expense") {
+          accountSummary.expense += amount;
+        }
+
+        continue;
+      }
+
+      if (transaction.type === "income") {
+        accountSummary.pendingIncome += amount;
+      }
+
+      if (transaction.type === "expense") {
+        accountSummary.pendingExpense += amount;
+      }
+    }
+
+    return summary;
+  }, [accounts, transactions]);
+
+  async function handleSaveAccount(account) {
+    try {
+      if (editing) {
+        await editAccount(editing.id, account);
+      } else {
+        await addAccount(account);
+      }
+
+      closeModal();
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   function closeModal() {
@@ -27,10 +105,29 @@ function Accounts() {
     setOpen(false);
   }
 
+  async function handleDeleteAccount(accountId) {
+    const confirmed = window.confirm(
+      "Deseja excluir esta conta? Essa ação não poderá ser desfeita.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await removeAccount(accountId);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  const loading = accountsLoading || transactionsLoading;
+  const errorMessage = accountsError || transactionsError;
+
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-white" />
+      <div className="flex min-h-screen items-center justify-center bg-zinc-100 transition-colors dark:bg-slate-950">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-600/20 border-t-indigo-600 dark:border-white/20 dark:border-t-white" />
       </div>
     );
   }
@@ -45,7 +142,7 @@ function Accounts() {
             </h1>
 
             <p className="mt-2 text-zinc-500 dark:text-slate-400">
-              Gerencie suas contas financeiras.
+              O saldo atual considera apenas lançamentos confirmados.
             </p>
           </div>
 
@@ -55,12 +152,18 @@ function Accounts() {
               setEditing(null);
               setOpen(true);
             }}
-            className="flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 font-semibold text-white transition hover:-translate-y-0.5 hover:bg-indigo-700"
+            className="flex shrink-0 items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 font-semibold text-white transition hover:-translate-y-0.5 hover:bg-indigo-700"
           >
             <Plus size={20} />
             Nova conta
           </button>
         </div>
+
+        {errorMessage && (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+            {errorMessage}
+          </div>
+        )}
 
         {accounts.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-zinc-300 p-12 text-center dark:border-slate-700">
@@ -74,65 +177,139 @@ function Accounts() {
           </div>
         ) : (
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {accounts.map((account) => (
-              <article
-                key={account.id}
-                className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg dark:border-slate-700 dark:bg-slate-900"
-              >
-                <div className="mb-5 flex items-center gap-3">
-                  <div
-                    className="h-5 w-5 rounded-full"
-                    style={{ backgroundColor: account.color }}
-                  />
+            {accounts.map((account) => {
+              const accountSummary = accountsSummary[account.id] ?? {
+                income: 0,
+                expense: 0,
+                pendingIncome: 0,
+                pendingExpense: 0,
+              };
 
-                  <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
-                    {account.name}
-                  </h2>
-                </div>
+              const initialBalance = Number(account.balance) || 0;
 
-                <p className="text-sm text-zinc-500 dark:text-slate-400">
-                  {account.type}
-                </p>
+              const currentBalance =
+                initialBalance + accountSummary.income - accountSummary.expense;
 
-                <h3 className="mt-6 text-3xl font-bold text-indigo-600 dark:text-indigo-400">
-                  {Number(account.balance).toLocaleString("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  })}
-                </h3>
+              const projectedBalance =
+                currentBalance +
+                accountSummary.pendingIncome -
+                accountSummary.pendingExpense;
 
-                <div className="mt-6 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditing(account);
-                      setOpen(true);
-                    }}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 transition hover:bg-zinc-100 dark:border-slate-700 dark:hover:bg-slate-800"
-                  >
-                    <Pencil size={16} />
-                    Editar
-                  </button>
+              return (
+                <article
+                  key={account.id}
+                  className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                >
+                  <div className="mb-5 flex items-center gap-3">
+                    <div
+                      className="h-5 w-5 shrink-0 rounded-full"
+                      style={{
+                        backgroundColor: account.color || "#4f46e5",
+                      }}
+                    />
 
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const confirmed = window.confirm(
-                        "Deseja excluir esta conta?",
-                      );
+                    <div className="min-w-0">
+                      <h2 className="truncate text-xl font-bold text-zinc-900 dark:text-white">
+                        {account.name}
+                      </h2>
 
-                      if (confirmed) {
-                        await removeAccount(account.id);
-                      }
-                    }}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-300 px-3 py-2 text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
-                  >
-                    <Trash2 size={16} />
-                    Excluir
-                  </button>
-                </div>
-              </article>
-            ))}
+                      <p className="text-sm capitalize text-zinc-500 dark:text-slate-400">
+                        {account.type}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-medium text-zinc-500 dark:text-slate-400">
+                      Saldo atual
+                    </p>
+
+                    <h3
+                      className={`mt-1 break-words text-3xl font-bold ${
+                        currentBalance < 0
+                          ? "text-red-600 dark:text-red-400"
+                          : "text-indigo-600 dark:text-indigo-400"
+                      }`}
+                    >
+                      {formatCurrency(currentBalance)}
+                    </h3>
+                  </div>
+
+                  <div className="mt-6 space-y-3 rounded-2xl bg-zinc-50 p-4 dark:bg-slate-800/70">
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-zinc-500 dark:text-slate-400">
+                        Saldo inicial
+                      </span>
+
+                      <span className="font-semibold text-zinc-800 dark:text-slate-200">
+                        {formatCurrency(initialBalance)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-zinc-500 dark:text-slate-400">
+                        Recebidas
+                      </span>
+
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                        + {formatCurrency(accountSummary.income)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-zinc-500 dark:text-slate-400">
+                        Pagas
+                      </span>
+
+                      <span className="font-semibold text-red-600 dark:text-red-400">
+                        - {formatCurrency(accountSummary.expense)}
+                      </span>
+                    </div>
+
+                    <div className="border-t border-zinc-200 pt-3 dark:border-slate-700">
+                      <div className="flex items-center justify-between gap-3 text-sm">
+                        <span className="text-zinc-500 dark:text-slate-400">
+                          Saldo previsto
+                        </span>
+
+                        <span
+                          className={`font-bold ${
+                            projectedBalance < 0
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-zinc-800 dark:text-slate-200"
+                          }`}
+                        >
+                          {formatCurrency(projectedBalance)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditing(account);
+                        setOpen(true);
+                      }}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 text-zinc-700 transition hover:bg-zinc-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      <Pencil size={16} />
+                      Editar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteAccount(account.id)}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-300 px-3 py-2 text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                    >
+                      <Trash2 size={16} />
+                      Excluir
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
 

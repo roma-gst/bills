@@ -1,38 +1,44 @@
-import { CircleDollarSign, X } from "lucide-react";
+import { X } from "lucide-react";
 
 function Modal({ title, children, onClose }) {
+  function handleBackdropClick(event) {
+    if (event.target === event.currentTarget) {
+      onClose();
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-3xl border border-zinc-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-2xl transition-colors dark:border-slate-700 dark:bg-slate-900">
-        <div className="mb-6 flex items-start justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 transition-colors dark:bg-blue-500/10 dark:text-blue-400">
-              <CircleDollarSign size={26} />
-            </div>
-
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white transition-colors dark:text-white">
-                {title}
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 transition-colors dark:text-slate-400">
-                Preencha os dados abaixo.
-              </p>
-            </div>
-          </div>
+    <div
+      role="presentation"
+      onMouseDown={handleBackdropClick}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-50 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+      >
+        <header className="flex shrink-0 items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-slate-700">
+          <h2
+            id="modal-title"
+            className="text-xl font-bold text-zinc-900 dark:text-white"
+          >
+            {title}
+          </h2>
 
           <button
             type="button"
             onClick={onClose}
             aria-label="Fechar modal"
-            className="rounded-full bg-zinc-100 dark:bg-slate-800 p-2.5 text-slate-600 transition hover:bg-zinc-200 dark:bg-slate-700 hover:text-slate-900 dark:text-white dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-zinc-500 transition hover:bg-zinc-200 hover:text-zinc-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
           >
-            <X size={20} />
+            <X size={21} />
           </button>
-        </div>
+        </header>
 
-        {children}
-      </div>
+        <div className="overflow-y-auto px-6 py-5">{children}</div>
+      </section>
     </div>
   );
 }
